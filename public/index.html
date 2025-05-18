@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词盲盒</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>提示词盲盒</h1>
+        <p>抽取一张卡片，探索AI创意提示词</p>
+    </header>
+
+    <main>
+        <div class="auth-container" id="auth-container">
+            <div class="auth-forms">
+                <div class="login-form" id="login-form">
+                    <h2>登录</h2>
+                    <form id="login-form-element">
+                        <div class="form-group">
+                            <label for="login-username">用户名</label>
+                            <input type="text" id="login-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">密码</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit">登录</button>
+                    </form>
+                    <p>没有账号？<a href="#" id="show-register">注册</a></p>
+                </div>
+
+                <div class="register-form" id="register-form" style="display: none;">
+                    <h2>注册</h2>
+                    <form id="register-form-element">
+                        <div class="form-group">
+                            <label for="register-username">用户名</label>
+                            <input type="text" id="register-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-email">电子邮箱</label>
+                            <input type="email" id="register-email">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">密码</label>
+                            <input type="password" id="register-password" required>
+                        </div>
+                        <button type="submit">注册</button>
+                    </form>
+                    <p>已有账号？<a href="#" id="show-login">登录</a></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-container" id="app-container" style="display: none;">
+            <div class="controls">
+                <button id="draw-card">抽取卡片</button>
+                <button id="view-collection">我的收藏</button>
+                <button id="view-categories">提示词分类</button>
+                <button id="logout" class="logout-btn">退出登录</button>
+            </div>
+
+            <div class="card-container" id="card-container">
+                <!-- 卡片将动态添加到这里 -->
+            </div>
+
+            <div class="collection-container" id="collection-container" style="display: none;">
+                <h2>我的收藏</h2>
+                <div class="collection-grid" id="collection-grid">
+                    <!-- 收藏的卡片将显示在这里 -->
+                </div>
+                <div class="pagination" id="collection-pagination">
+                    <!-- 分页控件 -->
+                </div>
+                <button id="back-to-draw" class="back-btn">返回</button>
+            </div>
+
+            <div class="categories-container" id="categories-container" style="display: none;">
+                <h2>提示词分类</h2>
+                <div class="categories-grid" id="categories-grid">
+                    <!-- 分类将显示在这里 -->
+                </div>
+                <button id="back-from-categories" class="back-btn">返回</button>
+            </div>
+
+            <div class="category-prompts-container" id="category-prompts-container" style="display: none;">
+                <h2 id="category-title">分类提示词</h2>
+                <div class="category-prompts-grid" id="category-prompts-grid">
+                    <!-- 分类下的提示词将显示在这里 -->
+                </div>
+                <div class="pagination" id="category-pagination">
+                    <!-- 分页控件 -->
+                </div>
+                <button id="back-to-categories" class="back-btn">返回分类</button>
+            </div>
+        </div>
+    </main>
+
+    <template id="card-template">
+        <div class="card">
+            <div class="card-inner">
+                <div class="card-front">
+                    <div class="prompt-content">
+                        <h3 class="prompt-title">提示词</h3>
+                        <div class="prompt-text-container">
+                            <p class="prompt-text"></p>
+                        </div>
+                        <div class="card-category">
+                            <span class="category-label"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-back">
+                    <div class="preview-content">
+                        <h3>预览效果</h3>
+                        <div class="preview-image">
+                            <img src="" alt="预览图">
+                        </div>
+                    </div>
+                    <button class="collect-btn">收藏</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="category-template">
+        <div class="category-card">
+            <h3 class="category-name"></h3>
+            <p class="prompt-count"><span></span> 个提示词</p>
+        </div>
+    </template>
+
+    <div class="notification" id="notification"></div>
+
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

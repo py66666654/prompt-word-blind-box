@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词盲盒</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>提示词盲盒</h1>
+        <p>抽取一张卡片，探索AI创意提示词</p>
+    </header>
+
+    <main>
+        <div class="controls">
+            <button id="draw-card">抽取卡片</button>
+            <button id="view-collection">查看收藏</button>
+        </div>
+
+        <div class="card-container" id="card-container">
+            <!-- Cards will be dynamically added here -->
+        </div>
+
+        <div class="collection-container" id="collection-container" style="display: none;">
+            <h2>我的收藏</h2>
+            <div class="collection-grid" id="collection-grid">
+                <!-- Collected cards will appear here -->
+            </div>
+            <button id="back-to-draw">返回抽卡</button>
+        </div>
+    </main>
+
+    <template id="card-template">
+        <div class="card">
+            <div class="card-inner">
+                <div class="card-front">
+                    <div class="prompt-content">
+                        <h3 class="prompt-title">提示词</h3>
+                        <div class="prompt-text-container">
+                            <p class="prompt-text"></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-back">
+                    <div class="preview-content">
+                        <h3>预览效果</h3>
+                        <div class="preview-image">
+                            <img src="" alt="预览图">
+                        </div>
+                    </div>
+                    <button class="collect-btn">收藏</button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="script.js"></script>
+</body>
+</html>
