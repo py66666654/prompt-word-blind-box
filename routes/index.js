@@ -1,48 +1,45 @@
-// 路由配置
+// 路由主入口
 const express = require('express');
 const router = express.Router();
 
-// 导入各路由模块
+// 导入路由模块
 const promptRoutes = require('./prompt.routes.updated');
 const userRoutes = require('./user.routes');
 const collectionRoutes = require('./collection.routes');
-const ratingRoutes = require('./rating.routes');
 const commentRoutes = require('./comment.routes');
-const shareRoutes = require('./share.routes');
+const ratingRoutes = require('./rating.routes');
 const followRoutes = require('./follow.routes');
+const notificationRoutes = require('./notification.routes');
 const activityRoutes = require('./activity.routes');
+const shareRoutes = require('./share.routes');
+const challengeRoutes = require('./challenge.routes');
 const achievementRoutes = require('./achievement.routes');
 const leaderboardRoutes = require('./leaderboard.routes');
-const challengeRoutes = require('./challenge.routes');
 const collaborativeRoutes = require('./collaborative.routes');
-const notificationRoutes = require('./notification.routes');
-const reportRoutes = require('./report.routes');
 const moderationRoutes = require('./moderation.routes');
+const reportRoutes = require('./report.routes');
+const analyticsRoutes = require('./analytics.routes');
 const broadcastRoutes = require('./broadcast.routes');
-const { router: analyticsRoutes } = require('./analytics.routes');
+const adminRoutes = require('./admin.routes'); // 添加管理员路由
 
-// 设置API路由
-router.use('/prompts', promptRoutes);
-router.use('/users', userRoutes);
-router.use('/collections', collectionRoutes);
-router.use('/ratings', ratingRoutes);
-router.use('/comments', commentRoutes);
-router.use('/shares', shareRoutes);
-router.use('/follows', followRoutes);
-router.use('/activities', activityRoutes);
-router.use('/achievements', achievementRoutes);
-router.use('/leaderboards', leaderboardRoutes);
-router.use('/challenges', challengeRoutes);
-router.use('/collaborative', collaborativeRoutes);
-router.use('/notifications', notificationRoutes);
-router.use('/reports', reportRoutes);
-router.use('/moderation', moderationRoutes);
-router.use('/broadcasts', broadcastRoutes);
-router.use('/analytics', analyticsRoutes);
-
-// API健康检查
-router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'API运行正常' });
-});
+// 注册路由
+router.use('/api/prompts', promptRoutes);
+router.use('/api/users', userRoutes);
+router.use('/api/collections', collectionRoutes);
+router.use('/api/comments', commentRoutes);
+router.use('/api/ratings', ratingRoutes);
+router.use('/api/follows', followRoutes);
+router.use('/api/notifications', notificationRoutes);
+router.use('/api/activities', activityRoutes);
+router.use('/api/shares', shareRoutes);
+router.use('/api/challenges', challengeRoutes);
+router.use('/api/achievements', achievementRoutes);
+router.use('/api/leaderboards', leaderboardRoutes);
+router.use('/api/collaborative', collaborativeRoutes);
+router.use('/api/moderation', moderationRoutes);
+router.use('/api/reports', reportRoutes);
+router.use('/api/analytics', analyticsRoutes);
+router.use('/api/broadcasts', broadcastRoutes);
+router.use('/api/admin', adminRoutes); // 添加管理员API路由
 
 module.exports = router;
