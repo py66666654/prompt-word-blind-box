@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>验证邮箱 - 提示词盲盒</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>提示词盲盒</h1>
+        <p>验证您的邮箱</p>
+    </header>
+
+    <main>
+        <div class="auth-container" style="display: flex;">
+            <div class="auth-forms">
+                <div class="verify-email-form">
+                    <h2>邮箱验证</h2>
+                    <div id="verification-message">
+                        <p>正在验证您的邮箱，请稍候...</p>
+                    </div>
+                    <div id="verification-success" style="display: none;">
+                        <p>邮箱验证成功！</p>
+                        <a href="index.html" class="button">返回登录</a>
+                    </div>
+                    <div id="verification-error" style="display: none;">
+                        <p id="error-message"></p>
+                        <a href="index.html" class="button">返回登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="notification" id="notification"></div>
+
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <script>
+        // 通知功能
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            // 3秒后隐藏通知
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 获取URL参数
+        function getUrlParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // 验证邮箱
+        async function verifyEmail() {
+            const token = getUrlParam('token');
+            const verificationMessage = document.getElementById('verification-message');
+            const verificationSuccess = document.getElementById('verification-success');
+            const verificationError = document.getElementById('verification-error');
+            const errorMessage = document.getElementById('error-message');
+            
+            if (!token) {
+                verificationMessage.style.display = 'none';
+                verificationError.style.display = 'block';
+                errorMessage.textContent = '无效的验证链接，请检查您的邮件中的链接。';
+                return;
+            }
+            
+            try {
+                await api.verifyEmail(token);
+                verificationMessage.style.display = 'none';
+                verificationSuccess.style.display = 'block';
+                showNotification('邮箱验证成功', 'success');
+            } catch (error) {
+                verificationMessage.style.display = 'none';
+                verificationError.style.display = 'block';
+                errorMessage.textContent = error.message || '验证失败，请重新尝试或联系客服。';
+                showNotification('邮箱验证失败', 'error');
+            }
+        }
+
+        // 页面加载时验证邮箱
+        window.addEventListener('DOMContentLoaded', verifyEmail);
+    </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 // AI提示词生成服务
 const { pool } = require('../config/database');
+const { autoFilterContent, notifyModeratorsAboutFilteredContent } = require('./content-filter.service');
 
 // 模板库（用于构建AI生成的提示词）
 const templates = {
@@ -209,6 +210,9 @@ async function generateAIPrompt(type) {
         const [categoryRows] = await pool.query('SELECT id FROM categories');
         const categoryId = getRandomElement(categoryRows).id;
         
+        // 默认状态为待审核
+        const defaultStatus = 'pending';
+        
         // 创建提示词记录
         const [result] = await pool.query(`
             INSERT INTO prompt_cards (
@@ -219,9 +223,19 @@ async function generateAIPrompt(type) {
                 quality_score, 
                 rarity_level_id, 
                 source, 
-                is_ai_generated
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
-        `, [promptText, previewUrl, categoryId, typeId, qualityScore, rarityLevelId, 'AI自动生成']);
+                is_ai_generated,
+                status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?)
+        `, [promptText, previewUrl, categoryId, typeId, qualityScore, rarityLevelId, 'AI自动生成', defaultStatus]);
+        
+        // 执行内容过滤
+        const filterResult = await autoFilterContent(promptText, 'prompt', result.insertId);
+        
+        // 如果内容未通过过滤
+        if (!filterResult.passed) {
+            // 通知管理员
+            await notifyModeratorsAboutFilteredContent('prompt', result.insertId, filterResult);
+        }
         
         // 获取新创建的提示词
         const [promptRows] = await pool.query(`

@@ -60,6 +60,12 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) UNIQUE,
     points INT DEFAULT 0, -- 用户积分，可用于抽取特定类型卡片
     premium BOOLEAN DEFAULT FALSE, -- 是否为高级用户
+    profile_image VARCHAR(255), -- 用户头像URL
+    bio TEXT, -- 用户简介
+    reset_token VARCHAR(255) DEFAULT NULL, -- 密码重置令牌
+    reset_token_expiry DATETIME DEFAULT NULL, -- 密码重置令牌过期时间
+    email_verified BOOLEAN DEFAULT FALSE, -- 邮箱是否已验证
+    verification_token VARCHAR(255) DEFAULT NULL, -- 邮箱验证令牌
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -82,6 +88,238 @@ CREATE TABLE IF NOT EXISTS draw_history (
     drawn_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (prompt_card_id) REFERENCES prompt_cards(id)
+);
+
+-- 社交互动系统 - 新增表
+
+-- 提示词评分表
+CREATE TABLE IF NOT EXISTS ratings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    prompt_card_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5), -- 1-5星评分
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (prompt_card_id) REFERENCES prompt_cards(id),
+    UNIQUE (user_id, prompt_card_id) -- 每个用户对每个提示词只能有一个评分
+);
+
+-- 提示词评论表
+CREATE TABLE IF NOT EXISTS comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    prompt_card_id INT NOT NULL,
+    comment_text TEXT NOT NULL,
+    parent_id INT DEFAULT NULL, -- 用于嵌套评论，NULL表示顶级评论
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (prompt_card_id) REFERENCES prompt_cards(id),
+    FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
+);
+
+-- 分享记录表
+CREATE TABLE IF NOT EXISTS shares (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    prompt_card_id INT NOT NULL,
+    platform VARCHAR(50) NOT NULL, -- 分享平台：wechat, weibo, twitter等
+    share_url VARCHAR(255), -- 分享链接
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (prompt_card_id) REFERENCES prompt_cards(id)
+);
+
+-- 用户关注表
+CREATE TABLE IF NOT EXISTS followers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    follower_id INT NOT NULL, -- 关注者
+    followed_id INT NOT NULL, -- 被关注者
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (followed_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (follower_id, followed_id) -- 防止重复关注
+);
+
+-- 用户活动表（用于活动流）
+CREATE TABLE IF NOT EXISTS user_activities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    activity_type ENUM('draw', 'rate', 'comment', 'share', 'follow', 'collect', 'achievement', 'challenge') NOT NULL, -- 活动类型
+    reference_id INT NOT NULL, -- 相关记录ID（根据activity_type指向不同表）
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 通知表
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL, -- 接收通知的用户
+    sender_id INT, -- 触发通知的用户（可为NULL，系统通知）
+    notification_type ENUM('comment', 'rating', 'follow', 'system', 'achievement', 'challenge') NOT NULL,
+    reference_id INT, -- 相关记录ID
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 成就系统表
+
+-- 成就类型表
+CREATE TABLE IF NOT EXISTS achievement_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    icon VARCHAR(255), -- 成就图标URL
+    category ENUM('collection', 'social', 'creation', 'exploration') NOT NULL, -- 成就类别
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 成就等级表
+CREATE TABLE IF NOT EXISTS achievement_levels (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    achievement_type_id INT NOT NULL,
+    level INT NOT NULL, -- 1, 2, 3 等级
+    name VARCHAR(50) NOT NULL, -- 例如：青铜收藏家, 白银收藏家, 黄金收藏家
+    description TEXT NOT NULL,
+    requirement INT NOT NULL, -- 达成该等级需要的数量
+    points INT NOT NULL, -- 获得的积分
+    badge_url VARCHAR(255), -- 徽章图片URL
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (achievement_type_id) REFERENCES achievement_types(id) ON DELETE CASCADE,
+    UNIQUE (achievement_type_id, level)
+);
+
+-- 用户成就表
+CREATE TABLE IF NOT EXISTS user_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    achievement_level_id INT NOT NULL,
+    current_progress INT NOT NULL DEFAULT 0, -- 当前进度
+    unlocked BOOLEAN DEFAULT FALSE, -- 是否已解锁
+    unlocked_at TIMESTAMP NULL, -- 解锁时间
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (achievement_level_id) REFERENCES achievement_levels(id) ON DELETE CASCADE,
+    UNIQUE (user_id, achievement_level_id)
+);
+
+-- 排行榜系统表
+
+-- 排行榜类型表
+CREATE TABLE IF NOT EXISTS leaderboard_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    calculation_type ENUM('total', 'average', 'count') NOT NULL, -- 计算方式
+    time_period ENUM('daily', 'weekly', 'monthly', 'all_time') NOT NULL, -- 时间范围
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 排行榜记录表
+CREATE TABLE IF NOT EXISTS leaderboard_entries (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    leaderboard_type_id INT NOT NULL,
+    user_id INT NOT NULL,
+    score DECIMAL(10,2) NOT NULL, -- 分数
+    rank INT NOT NULL, -- 排名
+    period_start DATE NOT NULL, -- 周期开始日期
+    period_end DATE NOT NULL, -- 周期结束日期
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (leaderboard_type_id) REFERENCES leaderboard_types(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (leaderboard_type_id, user_id, period_start, period_end)
+);
+
+-- 挑战系统表
+
+-- 挑战类型表
+CREATE TABLE IF NOT EXISTS challenge_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    icon VARCHAR(255),
+    requirement_type ENUM('collection', 'creation', 'rating', 'sharing') NOT NULL,
+    requirement_count INT NOT NULL, -- 完成挑战需要的数量
+    points INT NOT NULL, -- 完成后获得的积分
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 挑战活动表
+CREATE TABLE IF NOT EXISTS challenges (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    challenge_type_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    start_date DATETIME NOT NULL,
+    end_date DATETIME NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (challenge_type_id) REFERENCES challenge_types(id) ON DELETE CASCADE
+);
+
+-- 用户挑战表
+CREATE TABLE IF NOT EXISTS user_challenges (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    challenge_id INT NOT NULL,
+    current_progress INT NOT NULL DEFAULT 0,
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (challenge_id) REFERENCES challenges(id) ON DELETE CASCADE,
+    UNIQUE (user_id, challenge_id)
+);
+
+-- 协作提示词表
+CREATE TABLE IF NOT EXISTS collaborative_prompts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    base_prompt_text TEXT NOT NULL,
+    category_id INT,
+    type_id INT,
+    status ENUM('draft', 'active', 'completed', 'archived') DEFAULT 'draft',
+    created_by INT NOT NULL,
+    completed_prompt_id INT NULL, -- 最终完成的提示词ID
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id),
+    FOREIGN KEY (type_id) REFERENCES prompt_types(id),
+    FOREIGN KEY (completed_prompt_id) REFERENCES prompt_cards(id) ON DELETE SET NULL
+);
+
+-- 协作参与者表
+CREATE TABLE IF NOT EXISTS collaborative_participants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    collaborative_prompt_id INT NOT NULL,
+    user_id INT NOT NULL,
+    role ENUM('creator', 'editor', 'viewer') DEFAULT 'editor',
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (collaborative_prompt_id) REFERENCES collaborative_prompts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (collaborative_prompt_id, user_id)
+);
+
+-- 协作修改表
+CREATE TABLE IF NOT EXISTS collaborative_edits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    collaborative_prompt_id INT NOT NULL,
+    user_id INT NOT NULL,
+    edited_text TEXT NOT NULL,
+    edit_comment TEXT,
+    approved BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (collaborative_prompt_id) REFERENCES collaborative_prompts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 插入提示词类型数据

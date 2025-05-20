@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人资料 - 提示词盲盒</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>提示词盲盒</h1>
+        <p>个人资料设置</p>
+    </header>
+
+    <main>
+        <div class="profile-container">
+            <div class="profile-sidebar">
+                <div class="user-info">
+                    <div class="username" id="sidebar-username">用户名</div>
+                    <div class="email" id="sidebar-email">邮箱</div>
+                    <div class="email-status" id="email-status"></div>
+                </div>
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">收藏数量</span>
+                        <span class="stat-value" id="collection-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">抽卡次数</span>
+                        <span class="stat-value" id="draw-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">注册时间</span>
+                        <span class="stat-value" id="register-date">未知</span>
+                    </div>
+                </div>
+                <a href="index.html" class="back-btn">返回主页</a>
+            </div>
+            
+            <div class="profile-content">
+                <div class="profile-section">
+                    <h2>账号设置</h2>
+                    <div class="profile-form">
+                        <div class="form-group">
+                            <label for="username">用户名</label>
+                            <input type="text" id="username" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">电子邮箱</label>
+                            <input type="email" id="email">
+                        </div>
+                        <button id="resend-verification" class="secondary-btn" style="display: none;">重新发送验证邮件</button>
+                    </div>
+                </div>
+                
+                <div class="profile-section">
+                    <h2>修改密码</h2>
+                    <div class="profile-form">
+                        <div class="form-group">
+                            <label for="current-password">当前密码</label>
+                            <input type="password" id="current-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-password">新密码</label>
+                            <input type="password" id="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-password">确认新密码</label>
+                            <input type="password" id="confirm-password">
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="save-profile" class="primary-btn">保存更改</button>
+                
+                <div class="profile-section">
+                    <h2>数据统计</h2>
+                    <div class="stats-container">
+                        <div class="stats-cards">
+                            <div class="stat-card">
+                                <h3>抽取记录</h3>
+                                <div class="stat-chart" id="draw-history-chart"></div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>稀有度分布</h3>
+                                <div class="stat-chart" id="rarity-chart"></div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>收藏分类</h3>
+                                <div class="stat-chart" id="category-chart"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-details">
+                            <h3>提示词收藏</h3>
+                            <div class="recent-collections" id="recent-collections">
+                                <div class="loading-spinner">加载中...</div>
+                            </div>
+                            
+                            <h3>抽取历史</h3>
+                            <div class="recent-draws" id="recent-draws">
+                                <div class="loading-spinner">加载中...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="notification" id="notification"></div>
+
+    <script src="config.js"></script>
+    <script src="api.js"></script>
+    <script>
+        // 模拟数据（实际项目中应从API获取）
+        const mockData = {
+            rarityDistribution: [
+                { rarity: 'common', name: '普通', count: 38, percentage: 63.3 },
+                { rarity: 'good', name: '优质', count: 15, percentage: 25.0 },
+                { rarity: 'excellent', name: '精品', count: 5, percentage: 8.3 },
+                { rarity: 'rare', name: '珍贵', count: 1, percentage: 1.7 },
+                { rarity: 'epic', name: '稀有', count: 1, percentage: 1.7 },
+                { rarity: 'legendary', name: '传说', count: 0, percentage: 0 }
+            ],
+            recentCollections: [
+                { id: 1, title: '水下古文明遗迹', content: '深海水下古文明遗迹，巨石柱廊，古老的象形文字雕刻...', category: '概念艺术', rarity: 'epic', date: '2023-04-10' },
+                { id: 2, title: '霓虹灯赛博朋克', content: '1980年代赛博朋克风格动画，霓虹灯闪烁的未来城市...', category: '艺术风格', rarity: 'rare', date: '2023-04-08' },
+                { id: 3, title: '潮汐海岸线', content: '潮汐涌动的海岸线，岩石形成的自然拱门，夕阳映照下金色的海面...', category: '风景', rarity: 'excellent', date: '2023-04-05' },
+                { id: 4, title: '象棋大师', content: '你是一位世界级象棋大师。请分析我描述的棋盘局面...', category: '概念艺术', rarity: 'excellent', date: '2023-04-01' }
+            ],
+            recentDraws: [
+                { id: 10, title: '微缩城市模型', rarity: 'rare', date: '2023-04-12' },
+                { id: 11, title: '文学评论家', rarity: 'excellent', date: '2023-04-11' },
+                { id: 12, title: '宫廷人物肖像', rarity: 'good', date: '2023-04-10' },
+                { id: 13, title: '项目管理助手', rarity: 'good', date: '2023-04-09' },
+                { id: 14, title: '冥想背景音乐', rarity: 'excellent', date: '2023-04-08' },
+                { id: 15, title: '数据科学助手', rarity: 'excellent', date: '2023-04-07' }
+            ]
+        };
+        
+        // 绘制稀有度分布图表
+        function renderRarityChart() {
+            const rarityChart = document.getElementById('rarity-chart');
+            
+            if (!rarityChart) return;
+            
+            let html = '';
+            
+            // 为每个稀有度创建一个条形图
+            mockData.rarityDistribution.forEach(item => {
+                html += `
+                    <div class="rarity-bar rarity-${item.rarity}">
+                        <div class="rarity-bar-fill" style="width: 0%"></div>
+                        <span class="rarity-label-text">${item.name}</span>
+                        <span class="rarity-value">${item.count} (${item.percentage}%)</span>
+                    </div>
+                `;
+            });
+            
+            rarityChart.innerHTML = html;
+            
+            // 动画显示条形图
+            setTimeout(() => {
+                const bars = rarityChart.querySelectorAll('.rarity-bar-fill');
+                mockData.rarityDistribution.forEach((item, index) => {
+                    bars[index].style.width = `${item.percentage}%`;
+                });
+            }, 100);
+        }
+        
+        // 渲染最近收藏
+        function renderRecentCollections() {
+            const container = document.getElementById('recent-collections');
+            
+            if (!container) return;
+            
+            let html = '';
+            
+            if (mockData.recentCollections.length === 0) {
+                html = '<p>暂无收藏记录</p>';
+            } else {
+                mockData.recentCollections.forEach(item => {
+                    html += `
+                        <div class="mini-card rarity-${item.rarity}">
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-content">${item.content}</div>
+                            <div class="card-footer">
+                                <span>${item.category}</span>
+                                <span>${item.date}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // 渲染最近抽取
+        function renderRecentDraws() {
+            const container = document.getElementById('recent-draws');
+            
+            if (!container) return;
+            
+            let html = '';
+            
+            if (mockData.recentDraws.length === 0) {
+                html = '<p>暂无抽取记录</p>';
+            } else {
+                mockData.recentDraws.forEach(item => {
+                    html += `
+                        <div class="mini-card rarity-${item.rarity}">
+                            <div class="card-title">${item.title}</div>
+                            <div class="card-footer">
+                                <span>ID: #${item.id}</span>
+                                <span>${item.date}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // 渲染抽取历史图表（简单版本）
+        function renderDrawHistoryChart() {
+            const container = document.getElementById('draw-history-chart');
+            
+            if (!container) return;
+            
+            // 简单文本版本
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <p>本周抽取: 15 次</p>
+                    <p>本月抽取: 42 次</p>
+                    <p>总计抽取: 60 次</p>
+                </div>
+            `;
+        }
+        
+        // 渲染收藏分类图表（简单版本）
+        function renderCategoryChart() {
+            const container = document.getElementById('category-chart');
+            
+            if (!container) return;
+            
+            // 简单文本版本
+            container.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <p>人物: 4 张</p>
+                    <p>风景: 7 张</p>
+                    <p>艺术风格: 9 张</p>
+                    <p>概念艺术: 15 张</p>
+                    <p>科幻: 5 张</p>
+                </div>
+            `;
+        }
+        // 通知功能
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            // 3秒后隐藏通知
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 检查token
+        function checkAuth() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                window.location.href = 'index.html';
+            }
+            api.setToken(token);
+        }
+
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // 加载用户资料
+        async function loadProfile() {
+            try {
+                const profileData = await api.getUserProfile();
+                
+                // 更新侧边栏信息
+                document.getElementById('sidebar-username').textContent = profileData.username;
+                document.getElementById('sidebar-email').textContent = profileData.email || '未绑定邮箱';
+                
+                // 更新邮箱验证状态
+                const emailStatus = document.getElementById('email-status');
+                if (profileData.email) {
+                    if (profileData.email_verified) {
+                        emailStatus.textContent = '已验证';
+                        emailStatus.className = 'email-status verified';
+                    } else {
+                        emailStatus.textContent = '未验证';
+                        emailStatus.className = 'email-status unverified';
+                        document.getElementById('resend-verification').style.display = 'block';
+                    }
+                } else {
+                    emailStatus.textContent = '';
+                }
+                
+                // 更新统计数据
+                document.getElementById('collection-count').textContent = profileData.collection_count;
+                document.getElementById('draw-count').textContent = profileData.draw_count;
+                document.getElementById('register-date').textContent = formatDate(profileData.created_at);
+                
+                // 更新表单字段
+                document.getElementById('username').value = profileData.username;
+                document.getElementById('email').value = profileData.email || '';
+                
+            } catch (error) {
+                showNotification(error.message || '获取资料失败', 'error');
+                if (error.message.includes('认证')) {
+                    localStorage.removeItem('auth_token');
+                    window.location.href = 'index.html';
+                }
+            }
+        }
+
+        // 保存资料
+        async function saveProfile() {
+            const email = document.getElementById('email').value;
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // 验证新密码
+            if (newPassword || confirmPassword) {
+                if (!currentPassword) {
+                    showNotification('修改密码需要提供当前密码', 'error');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    showNotification('两次输入的新密码不一致', 'error');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    showNotification('新密码长度至少为6个字符', 'error');
+                    return;
+                }
+            }
+            
+            // 准备请求数据
+            const profileData = {};
+            
+            if (email) {
+                profileData.email = email;
+            }
+            
+            if (currentPassword && newPassword) {
+                profileData.currentPassword = currentPassword;
+                profileData.newPassword = newPassword;
+            }
+            
+            // 如果没有变更
+            if (Object.keys(profileData).length === 0) {
+                showNotification('没有需要更新的信息', 'info');
+                return;
+            }
+            
+            try {
+                const response = await api.updateProfile(profileData);
+                showNotification(response.message || '资料更新成功', 'success');
+                
+                // 清空密码字段
+                document.getElementById('current-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                
+                // 重新加载资料
+                loadProfile();
+            } catch (error) {
+                showNotification(error.message || '更新资料失败', 'error');
+            }
+        }
+
+        // 重新发送验证邮件
+        async function resendVerification() {
+            try {
+                const response = await api.resendVerificationEmail();
+                showNotification(response.message || '验证邮件已重新发送', 'success');
+            } catch (error) {
+                showNotification(error.message || '发送验证邮件失败', 'error');
+            }
+        }
+
+        // 页面加载
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadProfile();
+            
+            // 绑定事件
+            document.getElementById('save-profile').addEventListener('click', saveProfile);
+            document.getElementById('resend-verification').addEventListener('click', resendVerification);
+            
+            // 加载统计图表和数据
+            renderRarityChart();
+            renderDrawHistoryChart();
+            renderCategoryChart();
+            renderRecentCollections();
+            renderRecentDraws();
+        });
+    </script>
+</body>
+</html>

@@ -116,6 +116,62 @@ class Api {
     async getUserProfile() {
         return this.request('/users/profile');
     }
+    
+    // 更新用户资料
+    async updateProfile(profileData) {
+        return this.request('/users/profile', {
+            method: 'PUT',
+            body: JSON.stringify(profileData)
+        });
+    }
+    
+    // 获取用户统计数据
+    async getUserStats() {
+        return this.request('/users/stats');
+    }
+    
+    // 获取收藏历史
+    async getCollectionHistory(page = 1, limit = 10) {
+        return this.request(`/collections/history?page=${page}&limit=${limit}`);
+    }
+    
+    // 获取抽取历史
+    async getDrawHistory(page = 1, limit = 10) {
+        return this.request(`/draws/history?page=${page}&limit=${limit}`);
+    }
+    
+    // 请求密码重置
+    async requestPasswordReset(email) {
+        return this.request('/users/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+    }
+    
+    // 验证重置令牌
+    async verifyResetToken(token) {
+        return this.request(`/users/reset-password/${token}`);
+    }
+    
+    // 重置密码
+    async resetPassword(token, password) {
+        return this.request('/users/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ token, password })
+        });
+    }
+    
+    // 验证邮箱
+    async verifyEmail(token) {
+        return this.request(`/users/verify-email/${token}`);
+    }
+    
+    // 重新发送验证邮件
+    async resendVerificationEmail() {
+        return this.request('/users/resend-verification', {
+            method: 'POST'
+        });
+    }
 }
 
 // 创建API实例

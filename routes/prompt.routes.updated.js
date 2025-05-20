@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const promptController = require('../controllers/prompt.controller.updated');
 const aiPromptGenerator = require('../services/ai-prompt-generator');
+const { middlewares: analyticsMiddleware } = require('./analytics.routes');
 
 // 获取随机提示词卡片
 router.get('/random', promptController.getRandomPrompt);
@@ -44,6 +45,6 @@ router.get('/types', promptController.getAllPromptTypes);
 router.get('/rarity-levels', promptController.getAllRarityLevels);
 
 // 获取单个提示词详情
-router.get('/:id', promptController.getPromptById);
+router.get('/:id', analyticsMiddleware.viewPrompt, promptController.getPromptById);
 
 module.exports = router;

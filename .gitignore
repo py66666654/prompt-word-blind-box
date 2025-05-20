@@ -94,3 +94,44 @@ Desktop.ini
 /dist
 /build
 /out
+
+# SSH Keys and Credentials
+.ssh/
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+authorized_keys
+known_hosts
+
+# GitHub specific
+.github/ssh_keys/
+.github-token
+github_token.txt
+github_api_key
+
+# Other API keys and tokens
+*_api_key*
+*_token*
+*_secret*
+*_credential*
+*apikey*
+*password*
+oauth_token
+access_token
+credentials.json
+secrets.yml
+secrets.yaml
+secret.js
+secret.json
+config.local.js
+config.private.js
+
+# Downloaded images
+/public/images/prompts/

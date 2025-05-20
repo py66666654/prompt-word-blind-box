@@ -5,6 +5,7 @@ class PromptBlindBox {
         this.drawCardBtn = document.getElementById('draw-card');
         this.viewCollectionBtn = document.getElementById('view-collection');
         this.viewCategoriesBtn = document.getElementById('view-categories');
+        this.viewProfileBtn = document.getElementById('view-profile');
         this.backToDrawBtn = document.getElementById('back-to-draw');
         this.backFromCategoriesBtn = document.getElementById('back-from-categories');
         this.backToCategoriesBtn = document.getElementById('back-to-categories');
@@ -38,6 +39,19 @@ class PromptBlindBox {
             this.drawCard();
         });
         
+        // 盲盒点击也可以抽卡
+        const blindBox = document.getElementById('blind-box');
+        if (blindBox) {
+            blindBox.addEventListener('click', () => {
+                // 只有在显示盲盒且盒子未打开时才响应点击
+                if (blindBox.parentElement.style.display !== 'none' && 
+                    !blindBox.classList.contains('opening') && 
+                    !blindBox.classList.contains('opened')) {
+                    this.drawCard();
+                }
+            });
+        }
+        
         // 查看收藏按钮
         this.viewCollectionBtn.addEventListener('click', () => {
             this.showCollection();
@@ -47,6 +61,13 @@ class PromptBlindBox {
         this.viewCategoriesBtn.addEventListener('click', () => {
             this.showCategories();
         });
+        
+        // 查看个人资料按钮
+        if (this.viewProfileBtn) {
+            this.viewProfileBtn.addEventListener('click', () => {
+                window.location.href = 'profile.html';
+            });
+        }
         
         // 返回抽卡界面按钮
         this.backToDrawBtn.addEventListener('click', () => {
@@ -67,8 +88,25 @@ class PromptBlindBox {
     // 抽取一张卡片
     async drawCard() {
         try {
-            // 显示加载提示
-            this.cardContainer.innerHTML = '<div class="loading">正在抽取卡片...</div>';
+            const blindBoxContainer = document.getElementById('blind-box-container');
+            const blindBox = document.getElementById('blind-box');
+            const drawPrompt = document.getElementById('draw-prompt');
+            
+            if (blindBoxContainer.style.display === 'none') {
+                // 切换回盲盒视图
+                this.cardContainer.style.display = 'none';
+                blindBoxContainer.style.display = 'flex';
+                blindBox.classList.remove('opened');
+                blindBox.classList.remove('opening');
+                drawPrompt.textContent = '点击"抽取卡片"按钮开始';
+                return;
+            }
+            
+            // 更新提示文字
+            drawPrompt.textContent = '正在抽取卡片...';
+            
+            // 播放开盒动画
+            blindBox.classList.add('opening');
             
             // 从API获取随机提示词
             const promptData = await api.getRandomPrompt();
@@ -80,23 +118,74 @@ class PromptBlindBox {
             // 创建卡片
             const cardElement = this.createCard(promptData);
             
-            // 将卡片添加到容器
-            this.cardContainer.appendChild(cardElement);
+            // 设置稀有度样式
+            if (promptData.rarity_level_id) {
+                const rarityClass = this.getRarityClass(promptData.rarity_level_id);
+                cardElement.classList.add(rarityClass);
+            }
             
-            // 添加翻转卡片的事件监听器
-            cardElement.addEventListener('click', function() {
-                this.classList.toggle('flipped');
-            });
+            // 动画完成后显示卡片
+            setTimeout(() => {
+                blindBox.classList.add('opened');
+                blindBoxContainer.style.display = 'none';
+                this.cardContainer.style.display = 'flex';
+                
+                // 将卡片添加到容器
+                this.cardContainer.appendChild(cardElement);
             
-            // 添加收藏按钮事件监听器
-            const collectBtn = cardElement.querySelector('.collect-btn');
-            collectBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // 防止触发卡片翻转
-                this.collectCard(promptData.id);
-            });
+                // 添加翻转卡片的事件监听器
+                cardElement.addEventListener('click', function() {
+                    this.classList.toggle('flipped');
+                });
+                
+                // 添加收藏按钮事件监听器
+                const collectBtn = cardElement.querySelector('.collect-btn');
+                collectBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 防止触发卡片翻转
+                    this.collectCard(promptData.id);
+                });
+                
+                // 显示稀有度提示
+                if (promptData.rarity_level_id >= 4) { // 稀有及以上级别
+                    const rarityName = this.getRarityName(promptData.rarity_level_id);
+                    showNotification(`恭喜！抽到了${rarityName}级别的提示词！`, 'success');
+                }
+            }, 1500); // 与动画时间对应
         } catch (error) {
             console.error('抽卡失败:', error);
-            this.cardContainer.innerHTML = `<div class="error">抽卡失败: ${error.message}</div>`;
+            const drawPrompt = document.getElementById('draw-prompt');
+            drawPrompt.textContent = `抽卡失败: ${error.message}`;
+            
+            // 重置盲盒状态
+            const blindBox = document.getElementById('blind-box');
+            blindBox.classList.remove('opening');
+            blindBox.classList.remove('opened');
+        }
+    }
+    
+    // 根据稀有度ID获取对应的CSS类名
+    getRarityClass(rarityId) {
+        switch (parseInt(rarityId)) {
+            case 1: return 'rarity-common';
+            case 2: return 'rarity-good';
+            case 3: return 'rarity-excellent';
+            case 4: return 'rarity-rare';
+            case 5: return 'rarity-epic';
+            case 6: return 'rarity-legendary';
+            default: return 'rarity-common';
+        }
+    }
+    
+    // 根据稀有度ID获取稀有度名称
+    getRarityName(rarityId) {
+        switch (parseInt(rarityId)) {
+            case 1: return '普通';
+            case 2: return '优质';
+            case 3: return '精品';
+            case 4: return '珍贵';
+            case 5: return '稀有';
+            case 6: return '传说';
+            default: return '普通';
         }
     }
     
@@ -113,6 +202,16 @@ class PromptBlindBox {
         // 填充分类标签
         const categoryLabel = card.querySelector('.category-label');
         categoryLabel.textContent = promptData.category_name;
+        
+        // 填充稀有度标签
+        if (promptData.rarity_level_id) {
+            const rarityName = this.getRarityName(promptData.rarity_level_id);
+            const rarityLabel = card.querySelector('.rarity-label');
+            rarityLabel.textContent = rarityName;
+            
+            // 添加稀有度类名到卡片
+            card.classList.add(this.getRarityClass(promptData.rarity_level_id));
+        }
         
         // 填充预览图
         const previewImg = card.querySelector('.preview-image img');
@@ -210,10 +309,25 @@ class PromptBlindBox {
     
     // 显示抽卡界面
     showDrawCards() {
-        this.cardContainer.style.display = 'flex';
+        const blindBoxContainer = document.getElementById('blind-box-container');
+        const blindBox = document.getElementById('blind-box');
+        
         this.collectionContainer.style.display = 'none';
         this.categoriesContainer.style.display = 'none';
         this.categoryPromptsContainer.style.display = 'none';
+        
+        // 检查是否正在显示卡片
+        if (this.cardContainer.innerHTML.trim() !== '' && this.cardContainer.style.display !== 'none') {
+            // 正在显示卡片，保持显示
+            this.cardContainer.style.display = 'flex';
+            blindBoxContainer.style.display = 'none';
+        } else {
+            // 没有卡片，显示盲盒
+            this.cardContainer.style.display = 'none';
+            blindBoxContainer.style.display = 'flex';
+            blindBox.classList.remove('opened');
+            blindBox.classList.remove('opening');
+        }
     }
     
     // 渲染收藏的卡片
@@ -236,6 +350,11 @@ class PromptBlindBox {
                 const collectionCard = document.createElement('div');
                 collectionCard.className = 'collection-card';
                 
+                // 添加稀有度类名
+                if (card.rarity_level_id) {
+                    collectionCard.classList.add(this.getRarityClass(card.rarity_level_id));
+                }
+                
                 collectionCard.innerHTML = `
                     <h3>提示词</h3>
                     <div class="prompt-text-container">
@@ -246,6 +365,7 @@ class PromptBlindBox {
                     </div>
                     <div class="card-category">
                         <span class="category-label">${card.category_name}</span>
+                        ${card.rarity_level_id ? `<span class="rarity-label">${this.getRarityName(card.rarity_level_id)}</span>` : ''}
                     </div>
                     <button class="remove-btn">移除收藏</button>
                 `;
@@ -337,6 +457,11 @@ class PromptBlindBox {
                 const promptCard = document.createElement('div');
                 promptCard.className = 'collection-card';
                 
+                // 添加稀有度类名
+                if (prompt.rarity_level_id) {
+                    promptCard.classList.add(this.getRarityClass(prompt.rarity_level_id));
+                }
+                
                 promptCard.innerHTML = `
                     <h3>提示词</h3>
                     <div class="prompt-text-container">
@@ -344,6 +469,9 @@ class PromptBlindBox {
                     </div>
                     <div class="preview-image">
                         <img src="${prompt.preview_url}" alt="预览图">
+                    </div>
+                    <div class="card-category">
+                        ${prompt.rarity_level_id ? `<span class="rarity-label">${this.getRarityName(prompt.rarity_level_id)}</span>` : ''}
                     </div>
                     <button class="collect-btn">收藏</button>
                 `;
@@ -415,7 +543,59 @@ class PromptBlindBox {
     }
 }
 
+// 移动端导航菜单处理
+function initMobileNav() {
+    const navToggle = document.getElementById('nav-toggle');
+    const mainNav = document.getElementById('main-nav');
+    
+    if (navToggle && mainNav) {
+        navToggle.addEventListener('click', function() {
+            mainNav.classList.toggle('active');
+            
+            // 切换汉堡菜单动画
+            const spans = this.querySelectorAll('span');
+            spans.forEach(span => span.classList.toggle('active'));
+        });
+        
+        // 点击导航链接后关闭菜单
+        const navLinks = mainNav.querySelectorAll('a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                mainNav.classList.remove('active');
+                navToggle.querySelectorAll('span').forEach(span => span.classList.remove('active'));
+            });
+        });
+    }
+}
+
+// 响应式导航链接与主控制按钮的连接
+function linkNavToControls() {
+    // 导航菜单链接和主按钮的映射
+    const linkMap = {
+        'nav-draw-card': 'draw-card',
+        'nav-collection': 'view-collection',
+        'nav-categories': 'view-categories',
+        'nav-profile': 'view-profile',
+        'nav-logout': 'logout'
+    };
+    
+    // 为每个导航链接添加事件监听
+    Object.keys(linkMap).forEach(navId => {
+        const navLink = document.getElementById(navId);
+        const controlBtn = document.getElementById(linkMap[navId]);
+        
+        if (navLink && controlBtn) {
+            navLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                controlBtn.click(); // 模拟点击对应的控制按钮
+            });
+        }
+    });
+}
+
 // 初始化应用
 window.addEventListener('DOMContentLoaded', () => {
     const app = new PromptBlindBox();
+    initMobileNav();
+    linkNavToControls();
 });
