@@ -4,6 +4,16 @@
 CREATE DATABASE IF NOT EXISTS prompt_blind_box_db;
 USE prompt_blind_box_db;
 
+-- 系统配置表
+CREATE TABLE IF NOT EXISTS system_configs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    config_key VARCHAR(50) NOT NULL,
+    config_value TEXT NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE (config_key)
+);
+
 -- 提示词类型表
 CREATE TABLE IF NOT EXISTS prompt_types (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -332,12 +342,12 @@ INSERT INTO prompt_types (name, description, icon) VALUES
 
 -- 插入稀有度等级数据
 INSERT INTO rarity_levels (name, description, min_score, max_score, probability, color_code) VALUES
-('普通', '基础提示词，适合入门使用', 0, 39, 0.500000, '#AAAAAA'),
-('优质', '优化过的提示词，有一定参考价值', 40, 69, 0.390000, '#55AA55'),
-('精品', '经过精心设计的高质量提示词', 70, 84, 0.090000, '#5555FF'),
-('珍贵', '专业级提示词，效果出众', 85, 94, 0.019000, '#AA55AA'),
-('稀有', '极为稀有的顶级提示词', 95, 98, 0.000990, '#FFAA00'),
-('传说', '传说级别提示词，价值连城', 99, 100, 0.000010, '#FF5555');
+('普通', '基础提示词，适合入门使用', 0, 39, 0.450000, '#AAAAAA'),
+('优质', '优化过的提示词，有一定参考价值', 40, 69, 0.350000, '#55AA55'),
+('精品', '经过精心设计的高质量提示词', 70, 84, 0.150000, '#5555FF'),
+('珍贵', '专业级提示词，效果出众', 85, 94, 0.045000, '#AA55AA'),
+('稀有', '极为稀有的顶级提示词', 95, 98, 0.004900, '#FFAA00'),
+('传说', '传说级别提示词，价值连城', 99, 100, 0.000100, '#FF5555');
 
 -- 插入示例分类数据
 INSERT INTO categories (name, description, icon) VALUES
@@ -346,6 +356,18 @@ INSERT INTO categories (name, description, icon) VALUES
 ('艺术风格', '特定艺术风格相关提示词', 'palette'),
 ('概念艺术', '概念和想法相关提示词', 'idea'),
 ('科幻', '科幻元素相关提示词', 'rocket');
+
+-- 插入系统配置
+INSERT INTO system_configs (config_key, config_value, description) VALUES
+('DAILY_DRAWS_DEFAULT', '3', '普通用户每日默认抽取次数'),
+('DAILY_DRAWS_PREMIUM', '10', '高级用户每日默认抽取次数'),
+('DAILY_SUBMISSION_LIMIT', '5', '普通用户每日提交上限'),
+('DAILY_SUBMISSION_LIMIT_CONTRIBUTOR', '20', '贡献者用户每日提交上限'),
+('PITY_SYSTEM_RARE', '30', '珍贵保底次数 (稀有度4)'),
+('PITY_SYSTEM_EPIC', '60', '稀有保底次数 (稀有度5)'),
+('PITY_SYSTEM_LEGENDARY', '100', '传说保底次数 (稀有度6)'),
+('PITY_BOOST_INCREMENT', '0.05', '每10抽未获得珍贵及以上稀有度时增加的提升系数'),
+('PITY_BOOST_MAX', '2.5', '动态保底最大提升系数');
 
 -- 插入示例提示词数据
 -- 图像生成提示词

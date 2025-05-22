@@ -13,7 +13,9 @@
       "Bash(npm install:*)",
       "Bash(gh:*)",
       "Bash(ls:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(rg:*)",
+      "WebFetch(domain:docs.anthropic.com)"
     ],
     "deny": []
   }

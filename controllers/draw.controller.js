@@ -66,7 +66,11 @@ exports.drawPrompt = async (req, res) => {
         return res.status(403).json({ message: '您没有权限使用此卡池' });
       }
       
-      // 获取用户抽卡历史，用于保底计算
+      // 获取卡池稀有度提升信息
+      let poolRarityBoost = await rarityService.getPoolRarityBoost(poolId);
+      let rarityBoostFactor = poolRarityBoost.factor || 1.0;
+      
+      // 获取用户抽卡历史总数
       const [historyRows] = await connection.execute(
         'SELECT COUNT(*) as total_draws FROM draw_history WHERE user_id = ?',
         [userId]
@@ -74,83 +78,24 @@ exports.drawPrompt = async (req, res) => {
       
       const totalDraws = historyRows[0].total_draws;
       
-      // 获取用户上次抽到珍贵及以上级别提示词的抽数
-      const [lastRareDrawRows] = await connection.execute(`
-        SELECT COUNT(*) as draws_since_rare FROM (
-          SELECT dh.id FROM draw_history dh
-          JOIN prompt_cards pc ON dh.prompt_card_id = pc.id
-          JOIN rarity_levels rl ON pc.rarity_level_id = rl.id
-          WHERE dh.user_id = ?
-          ORDER BY dh.drawn_at DESC
-          LIMIT 10
-        ) AS recent_draws
-        WHERE recent_draws.rarity_level_id >= 4
-      `, [userId]);
-      
-      const drawsSinceRare = lastRareDrawRows[0].draws_since_rare > 0 ? 0 : 10 - lastRareDrawRows[0].draws_since_rare;
-      
-      // 计算稀有度概率调整
-      let rarityBoostFactor = 1.0;
-      
-      // 应用卡池稀有度提升
-      if (pool.rarity_boost) {
-        const rarityBoost = JSON.parse(pool.rarity_boost);
-        rarityBoostFactor = rarityBoost.factor || 1.0;
-      }
-      
       // 应用新手保底
       if (totalDraws < 10 && pool.pool_type === 'new_user') {
-        rarityBoostFactor *= 1.5; // 新手卡池额外提升50%珍贵及以上概率
+        rarityBoostFactor *= 1.5; // 新手卡池额外提升50%高稀有度概率
+        console.log(`应用新手保底提升，稀有度提升系数: ${rarityBoostFactor}`);
       }
       
-      // 应用连续未抽到稀有保底
-      if (drawsSinceRare >= 10) {
-        rarityBoostFactor *= 1.3; // 连续10次未抽到珍贵及以上，提升30%概率
-      }
+      // 计算用户保底情况和动态概率提升
+      const pityInfo = await rarityService.calculatePityBoost(userId);
       
-      // 应用不同稀有度的全局保底机制
-      const [configRows] = await connection.execute(
-        'SELECT config_value FROM system_configs WHERE config_key IN (?, ?, ?)',
-        ['PITY_SYSTEM_RARE', 'PITY_SYSTEM_EPIC', 'PITY_SYSTEM_LEGENDARY']
-      );
-      
-      const configMap = {};
-      configRows.forEach(row => {
-        configMap[row.config_key] = parseInt(row.config_value);
-      });
-      
-      // 获取用户的抽卡保底计数
-      const [pityCountRows] = await connection.execute(`
-        SELECT 
-          COUNT(*) as total_since_last_draw,
-          MAX(CASE WHEN pc.rarity_level_id >= 4 THEN dh.id ELSE NULL END) as last_rare_draw_id,
-          MAX(CASE WHEN pc.rarity_level_id >= 5 THEN dh.id ELSE NULL END) as last_epic_draw_id,
-          MAX(CASE WHEN pc.rarity_level_id >= 6 THEN dh.id ELSE NULL END) as last_legendary_draw_id
-        FROM draw_history dh
-        JOIN prompt_cards pc ON dh.prompt_card_id = pc.id
-        WHERE dh.user_id = ?
-        ORDER BY dh.drawn_at DESC
-      `, [userId]);
-      
-      const pityCount = {
-        rare: pityCountRows[0].last_rare_draw_id ? totalDraws - pityCountRows[0].last_rare_draw_id : totalDraws,
-        epic: pityCountRows[0].last_epic_draw_id ? totalDraws - pityCountRows[0].last_epic_draw_id : totalDraws,
-        legendary: pityCountRows[0].last_legendary_draw_id ? totalDraws - pityCountRows[0].last_legendary_draw_id : totalDraws
-      };
-      
-      // 应用保底机制
-      let forcedRarityId = null;
-      
-      if (pityCount.legendary >= configMap.PITY_SYSTEM_LEGENDARY) {
-        forcedRarityId = 6; // 传说
-      } else if (pityCount.epic >= configMap.PITY_SYSTEM_EPIC) {
-        forcedRarityId = 5; // 稀有
-      } else if (pityCount.rare >= configMap.PITY_SYSTEM_RARE) {
-        forcedRarityId = 4; // 珍贵
+      // 记录保底状态（用于日志和调试）
+      if (pityInfo.forcedRarityId) {
+        console.log(`保底系统触发，保证抽取稀有度ID: ${pityInfo.forcedRarityId}`);
+      } else if (pityInfo.dynamicBoostFactor > 1.0) {
+        console.log(`动态提升激活，提升系数: ${pityInfo.dynamicBoostFactor}`);
       }
       
       // 确定抽取的稀有度
-      const rarityId = forcedRarityId || await rarityService.determineRarity(rarityBoostFactor);
+      const rarityId = await rarityService.determineRarity(rarityBoostFactor, pityInfo);
       
       // 根据稀有度抽取提示词
       let promptQuery = `

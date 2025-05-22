@@ -189,6 +189,51 @@ class PromptBlindBox {
         }
     }
     
+    // 根据稀有度ID获取稀有度描述
+    getRarityDescription(rarityId) {
+        switch (parseInt(rarityId)) {
+            case 1: return '基础提示词，适合入门使用';
+            case 2: return '优化过的提示词，有一定参考价值';
+            case 3: return '经过精心设计的高质量提示词';
+            case 4: return '专业级提示词，效果出众';
+            case 5: return '极为稀有的顶级提示词';
+            case 6: return '传说级别提示词，价值连城';
+            default: return '基础提示词';
+        }
+    }
+    
+    // 计算对比色，用于文本可读性
+    getContrastColor(hexColor) {
+        // 移除井号并转换为RGB
+        hexColor = hexColor.replace('#', '');
+        const r = parseInt(hexColor.substr(0, 2), 16);
+        const g = parseInt(hexColor.substr(2, 2), 16);
+        const b = parseInt(hexColor.substr(4, 2), 16);
+        
+        // 计算亮度
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        
+        // 亮度大于125，返回黑色，否则返回白色
+        return brightness > 125 ? '#222222' : '#ffffff';
+    }
+    
+    // 调整颜色亮度
+    adjustColorBrightness(hexColor, factor) {
+        // 移除井号并转换为RGB
+        hexColor = hexColor.replace('#', '');
+        let r = parseInt(hexColor.substr(0, 2), 16);
+        let g = parseInt(hexColor.substr(2, 2), 16);
+        let b = parseInt(hexColor.substr(4, 2), 16);
+        
+        // 提高亮度（用于背景）
+        r = Math.min(255, Math.round(r * factor + (1 - factor) * 255));
+        g = Math.min(255, Math.round(g * factor + (1 - factor) * 255));
+        b = Math.min(255, Math.round(b * factor + (1 - factor) * 255));
+        
+        // 转回十六进制
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
     // 创建卡片元素
     createCard(promptData) {
         // 克隆模板
@@ -205,12 +250,55 @@ class PromptBlindBox {
         
         // 填充稀有度标签
         if (promptData.rarity_level_id) {
-            const rarityName = this.getRarityName(promptData.rarity_level_id);
+            const rarityId = parseInt(promptData.rarity_level_id);
+            const rarityName = this.getRarityName(rarityId);
+            const rarityDescription = this.getRarityDescription(rarityId);
             const rarityLabel = card.querySelector('.rarity-label');
             rarityLabel.textContent = rarityName;
+            rarityLabel.setAttribute('title', rarityDescription);
             
-            // 添加稀有度类名到卡片
-            card.classList.add(this.getRarityClass(promptData.rarity_level_id));
+            // 使用服务器返回的颜色代码或回退到默认
+            let colorCode = promptData.color_code || null;
+            
+            // 根据不同稀有度加载样式
+            card.classList.add(this.getRarityClass(rarityId));
+            
+            // 为稀有度高的卡片添加特殊效果
+            if (rarityId >= 4) {
+                const cardFront = card.querySelector('.card-front');
+                const cardBack = card.querySelector('.card-back');
+                
+                // 添加边框光效
+                if (colorCode) {
+                    cardFront.style.borderColor = colorCode;
+                    cardBack.style.borderColor = colorCode;
+                    
+                    if (rarityId >= 5) {
+                        // 增加边框宽度和发光效果
+                        cardFront.style.borderWidth = '3px';
+                        cardBack.style.borderWidth = '3px';
+                        cardFront.style.boxShadow = `0 0 15px ${colorCode}80`;
+                        cardBack.style.boxShadow = `0 0 15px ${colorCode}80`;
+                    }
+                    
+                    // 添加角标装饰
+                    if (rarityId >= 5) {
+                        const cornerDecoration = document.createElement('div');
+                        cornerDecoration.className = 'corner-decoration';
+                        cornerDecoration.innerHTML = `<span>${rarityName}</span>`;
+                        cornerDecoration.style.backgroundColor = colorCode;
+                        cornerDecoration.style.color = this.getContrastColor(colorCode);
+                        cardFront.appendChild(cornerDecoration);
+                    }
+                }
+            }
+            
+            // 设置稀有度标签颜色
+            if (colorCode) {
+                const lightBackground = this.adjustColorBrightness(colorCode, 0.2);
+                rarityLabel.style.backgroundColor = lightBackground;
+                rarityLabel.style.color = this.getContrastColor(lightBackground);
+            }
         }
         
         // 填充预览图

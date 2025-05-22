@@ -430,6 +430,8 @@ INSERT INTO system_configs (config_key, config_value, description) VALUES
 ('DAILY_DRAWS_PREMIUM', '10', '高级用户每日默认抽取次数'),
 ('DAILY_SUBMISSION_LIMIT', '5', '普通用户每日提交上限'),
 ('DAILY_SUBMISSION_LIMIT_CONTRIBUTOR', '20', '贡献者用户每日提交上限'),
-('PITY_SYSTEM_RARE', '50', '珍贵保底次数'),
-('PITY_SYSTEM_EPIC', '200', '稀有保底次数'),
-('PITY_SYSTEM_LEGENDARY', '500', '传说保底次数');
+('PITY_SYSTEM_RARE', '30', '珍贵保底次数 (稀有度4)'),
+('PITY_SYSTEM_EPIC', '60', '稀有保底次数 (稀有度5)'),
+('PITY_SYSTEM_LEGENDARY', '100', '传说保底次数 (稀有度6)'),
+('PITY_BOOST_INCREMENT', '0.05', '每10抽未获得珍贵及以上稀有度时增加的提升系数'),
+('PITY_BOOST_MAX', '2.5', '动态保底最大提升系数');

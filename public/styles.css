@@ -408,6 +408,58 @@ button:hover {
     animation: legendary-glow 2s ease-in-out infinite alternate;
 }
 
+/* 带光效的稀有度指示器 */
+.corner-decoration {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #ffaa00;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    transform: rotate(15deg);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    border: 2px solid white;
+    animation: sparkle 3s ease-in-out infinite;
+}
+
+/* 稀有卡表面特效 */
+.card.rarity-epic .card-front::before,
+.card.rarity-legendary .card-front::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+    background-size: 200% 200%;
+    border-radius: 10px;
+    z-index: 1;
+    animation: shine 4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.card.rarity-legendary .card-front::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #ff5555, #ffaa00, #55aa55, #5555ff, #aa55aa, #ff5555);
+    background-size: 400% 400%;
+    border-radius: 12px;
+    z-index: -1;
+    filter: blur(3px);
+    animation: rainbow-border 10s linear infinite;
+    opacity: 0.7;
+}
+
 @keyframes epic-glow {
     0% { box-shadow: 0 0 15px rgba(255, 170, 0, 0.5); }
     100% { box-shadow: 0 0 25px rgba(255, 170, 0, 0.8); }
@@ -416,6 +468,21 @@ button:hover {
 @keyframes legendary-glow {
     0% { box-shadow: 0 0 20px rgba(255, 85, 85, 0.6); }
     100% { box-shadow: 0 0 35px rgba(255, 85, 85, 0.9); }
+}
+
+@keyframes sparkle {
+    0%, 100% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.5); }
+    50% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.8), 0 0 10px rgba(255, 255, 0, 0.5); }
+}
+
+@keyframes shine {
+    0%, 100% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+}
+
+@keyframes rainbow-border {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
 }
 
 .prompt-content, .preview-content {
